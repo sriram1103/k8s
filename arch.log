@@ -1,0 +1,77 @@
+Nodes:
+======
+
+A node is a worker machine in Kubernetes, previously known as a minion. 
+A node may be a VM or physical machine, depending on the cluster. 
+Each node contains the services necessary to run pods and is managed by the master components. 
+The services on a node include the c
+    ontainer runtime, 
+    kubelet and 
+    kube-proxy
+    
+    
+Node Status:
+============
+
+A node’s status contains the following information:
+
+    Addresses - hostname, external ip,internal ip
+    Condition - OutOfDiskTrue,ReadyTrue,MemoryPressureTrue,PIDPressureTrue,DiskPressureTrue,NetworkUnavailableTrue
+    Capacity  - CPU, memory and the maximum number of pods
+    Info      - kernel version, Kubernetes version, Docker version, OS name
+    
+Node Controller:
+================
+
+The node controller is a Kubernetes master component which manages various aspects of nodes.
+
+The node controller has multiple roles in a node’s life.
+    
+* first is assigning a CIDR block to the node when it is registered
+* second is keeping the node controller’s internal list of nodes up to date with the cloud provider’s list of available machines
+* third is monitoring the nodes’ health (node lease feature is introduced as an alpha feature in 1.13, before that it was a heartbeat)
+
+When node lease feature is enabled, each node has an associated Lease object in kube-node-lease namespace 
+it is renewed by the node periodically, and both NodeStatus and node lease are treated as heartbeats from the node. 
+Node leases are renewed frequently while NodeStatus is reported from node to master only when there is some change or enough time has passed (default is 1 minute, which is longer than the default timeout of 40 seconds for unreachable nodes). 
+Since node lease is much more lightweight than NodeStatus, this feature makes node heartbeat significantly cheaper from both scalability and performance perspectives
+
+
+
+
+Master-Node communication:
+==========================
+
+communication paths between the master (really the apiserver) and the Kubernetes cluster.
+
+Cluster to Master:
+-------------------
+
+All communication paths from the cluster to the master terminate at the apiserver  
+In a typical deployment, the apiserver is configured to listen for remote connections on a secure HTTPS port (443) with one or more forms of client authentication enabled. 
+One or more forms of authorization should be enabled, especially if anonymous requests or service account tokens are allowed
+
+Nodes should be provisioned with the public root certificate for the cluster such that they can connect securely to the apiserver along with valid client credentials
+
+
+Master to Cluster:
+==================
+
+There are two primary communication paths from the master (apiserver) to the cluster. 
+* The first is from the apiserver to the kubelet process which runs on each node in the cluster. 
+* The second is from the apiserver to any node, pod, or service through the apiserver’s proxy functionality
+
+apiserver to kubelet
+
+    The connections from the apiserver to the kubelet are used for:
+
+        Fetching logs for pods.
+        Attaching (through kubectl) to running pods.
+        Providing the kubelet’s port-forwarding functionality
+        
+    These connections terminate at the kubelet’s HTTPS endpoint.
+
+apiserver to nodes, pods, and services
+
+    The connections from the apiserver to a node, pod, or service default to plain HTTP connections and are therefore neither authenticated nor encrypted. 
+    They can be run over a secure HTTPS connection by prefixing https:

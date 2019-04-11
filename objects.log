@@ -1,0 +1,167 @@
+Kubernetes Objects are persistent entities in the Kubernetes system. 
+Kubernetes uses these entities to represent the state of your cluster. 
+Specifically, they can describe:
+
+    What containerized applications are running (and on which nodes)
+    The resources available to those applications
+    The policies around how those applications behave, such as restart policies, upgrades, and fault-tolerance
+    
+A Kubernetes object is a “record of intent”
+By creating an object, you’re effectively telling the Kubernetes system what you want your cluster’s workload to look like; this is your cluster’s desired state.
+    
+Object Spec and Status:
+=======================
+    Every Kubernetes object includes two nested object fields that govern the object’s configuration: 
+    
+    the object spec 
+        describes your desired state for the object–the characteristics that you want the object to have
+    the object status
+        describes the actual state of the object, and is supplied and updated by the Kubernetes system
+        
+At any given time, the Kubernetes Control Plane actively manages an object’s actual state to match the desired state you supplied
+
+
+Describing a Kubernetes Object:
+===============================
+Most often, you provide the information to kubectl in a .yaml file. 
+kubectl converts the information to JSON when making the API request
+Example:
+application/deployment.yaml 
+
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 2 # tells deployment to run 2 pods matching the template
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80
+
+# kubectl apply -f https://k8s.io/examples/application/deployment.yaml --record
+deployment.apps/nginx-deployment created
+
+
+
+
+Required Fields:
+================
+
+In the .yaml file for the Kubernetes object you want to create, you’ll need to set values for the following fields:
+
+    apiVersion - Which version of the Kubernetes API you’re using to create this object
+    kind - What kind of object you want to create
+    metadata - Data that helps uniquely identify the object, including a name string, UID, and optional namespace
+    
+    
+Names:
+======
+
+All objects in the Kubernetes REST API are unambiguously identified by a Name and a UID.
+For non-unique user-provided attributes, Kubernetes provides labels and annotations.
+
+
+Name: A client-provided string that refers to an object in a resource URL, such as /api/v1/pods/some-name.
+UID: A Kubernetes systems-generated string to uniquely identify objects
+
+
+Namespaces:
+===========
+
+Kubernetes supports multiple virtual clusters backed by the same physical cluster. These virtual clusters are called namespaces.
+
+Namespaces provide a scope for names. 
+Names of resources need to be unique within a namespace, but not across namespaces. 
+Namespaces can not be nested inside one another and each Kubernetes resources can only be in one namespace.
+
+
+Kubernetes starts with three initial namespaces:
+
+    default The default namespace for objects with no other namespace
+    kube-system The namespace for objects created by the Kubernetes system
+    kube-public This namespace is created automatically and is readable by all users. This namespace is mostly reserved for cluster usage, in case that some resources should be visible and readable publicly throughout the whole cluster. The public aspect of this namespace is only a convention, not a requirement
+
+
+Not All Objects are in a Namespace - like low level resources nodes, persistent volumes
+
+
+Labels and Selectors:
+=====================
+
+Labels are key/value pairs that are attached to objects, such as pods. 
+Labels are intended to be used to specify identifying attributes of objects that are meaningful and relevant to users, but do not directly imply semantics to the core system
+Labels can be used to organize and to select subsets of objects. 
+Labels can be attached to objects at creation time and subsequently added and modified at any time. 
+Each object can have a set of key/value labels defined. Each Key must be unique for a given object.
+
+"metadata": {
+  "labels": {
+    "key1" : "value1",
+    "key2" : "value2"
+  }
+}
+
+Labels allow for efficient queries and watches and are ideal for use in UIs and CLIs. Non-identifying information should be recorded using annotations. 
+
+
+Annotations:
+============
+
+You can use Kubernetes annotations to attach arbitrary non-identifying metadata to objects. Clients such as tools and libraries can retrieve this metadata.
+
+"metadata": {
+  "annotations": {
+    "key1" : "value1",
+    "key2" : "value2"
+  }
+}
+
+Here are some examples of information that could be recorded in annotations:
+
+    Fields managed by a declarative configuration layer. Attaching these fields as annotations distinguishes them from default values set by clients or servers, and from auto-generated fields and fields set by auto-sizing or auto-scaling systems.
+
+    Build, release, or image information like timestamps, release IDs, git branch, PR numbers, image hashes, and registry address.
+
+    Pointers to logging, monitoring, analytics, or audit repositories.
+
+    Client library or tool information that can be used for debugging purposes: for example, name, version, and build information.
+
+    User or tool/system provenance information, such as URLs of related objects from other ecosystem components.
+
+    Lightweight rollout tool metadata: for example, config or checkpoints.
+
+    Phone or pager numbers of persons responsible, or directory entries that specify where that information can be found, such as a team web site.
+
+    Directives from the end-user to the implementations to modify behavior or engage non-standard features.
+    
+Field Selectors:
+================
+    
+Field selectors let you select Kubernetes resources based on the value of one or more resource fields. Here are some example field selector queries:
+
+    metadata.name=my-service
+    metadata.namespace!=default
+    status.phase=Pending
+    
+    
+Kubernetes Object Management:
+=============================
+
+Management technique        	    Operates on	            Recommended environment	Supported writers	Learning curve    
+
+Imperative commands     	        Live objects	        Development projects	1+	Lowest
+Imperative object configuration 	Individual files	    Production projects	1	Moderate
+Declarative object configuration	Directories of files	Production projects	1+	Highest
+
+
+
