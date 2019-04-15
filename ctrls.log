@@ -1,0 +1,288 @@
+ReplicaSet
+
+A ReplicaSet’s purpose is to maintain a stable set of replica Pods running at any given time. 
+As such, it is often used to guarantee the availability of a specified number of identical Pods. 
+
+
+How a ReplicaSet works:
+=======================
+
+A ReplicaSet is defined with fields, including a selector that specifies how to identify Pods it can acquire, a number of replicas indicating how many Pods it should be maintaining, and a pod template specifying the data of new Pods it should create to meet the number of replicas criteria. 
+
+A ReplicaSet then fulfills its purpose by creating and deleting Pods as needed to reach the desired number. 
+
+When a ReplicaSet needs to create new Pods, it uses its Pod template
+
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  # modify replicas according to your case
+  replicas: 3
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        tier: frontend
+    spec:
+      containers:
+      - name: php-redis
+        image: gcr.io/google_samples/gb-frontend:v3
+
+        
+        
+Non-Template Pod acquisitions:
+==============================
+
+While you can create bare Pods with no problems, it is strongly recommended to make sure that the bare Pods do not have labels which match the selector of one of your ReplicaSets.
+The reason for this is because a ReplicaSet is not limited to owning Pods specified by its template– it can acquire other Pods in the manner specified in the previous sections.
+
+
+
+
+
+
+
+
+
+
+
+
+ReplicationController:
+======================
+
+    Note: A Deployment that configures a ReplicaSet is now the recommended way to set up replication.
+
+A ReplicationController ensures that a specified number of pod replicas are running at any one time.
+In other words, a ReplicationController makes sure that a pod or a homogeneous set of pods is always up and available.
+
+
+
+
+
++--------------------------------------------------+-----------------------------------------------------+
+|                   Replica Set                    |               Replication Controller                |
++--------------------------------------------------+-----------------------------------------------------+
+| Replica Set supports the new set-based selector. | Replication Controller only supports equality-based |
+| This gives more flexibility. for eg:             | selector. for eg:                                   |
+|          environment in (production, qa)         |             environment = production                |
+|  This selects all resources with key equal to    | This selects all resources with key equal to        |
+|  environment and value equal to production or qa | environment and value equal to production           |
++--------------------------------------------------+-----------------------------------------------------+
+
+
++-------------------------------------------------------+-----------------------------------------------+
+|                      Replica Set                      |            Replication Controller             |
++-------------------------------------------------------+-----------------------------------------------+
+| rollout command is used for updating the replica set. | rolling-update command is used for updating   |
+| Even though replica set can be used independently,    | the replication controller. This replaces the |
+| it is best used along with deployments which          | specified replication controller with a new   |
+| makes them declarative.                               | replication controller by updating one pod    |
+|                                                       | at a time to use the new PodTemplate.         |
++-------------------------------------------------------+-----------------------------------------------+
+
+
+
+Deployments:
+============
+
+A Deployment controller provides declarative updates for Pods and ReplicaSets.
+
+You describe a desired state in a Deployment object, and the Deployment controller changes the actual state to the desired state at a controlled rate. 
+
+You can define Deployments to create new ReplicaSets, or to remove existing Deployments and adopt all their resources with new Deployments.
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80
+
+        
+#create deply
+
+kubectl apply -f https://k8s.io/examples/controllers/nginx-deployment.yaml
+kubectl create -f /tmp/deployment.yml
+
+#get status
+
+kubectl get deployments
+kubectl get rs
+
+#get config
+kubectl describe deployments
+kubectl get deployment nginx-deployment -o yaml
+
+#update
+kubectl --record deployment.apps/nginx-deployment set image deployment.v1.apps/nginx-deployment nginx=nginx:1.9.1
+kubectl edit deployment.v1.apps/nginx-deployment
+
+#check rollout status 
+kubectl rollout status deployment.v1.apps/nginx-deployment
+
+kubectl set image deployment.v1.apps/nginx-deployment nginx=nginx:1.91 --record=true
+
+kubectl rollout history deployment.v1.apps/nginx-deployment
+kubectl rollout history deployment.v1.apps/nginx-deployment --revision=2
+
+kubectl rollout undo deployment.v1.apps/nginx-deployment
+
+kubectl rollout pause deployment.v1.apps/nginx-deployment
+
+
+#scale
+kubectl scale deployment.v1.apps/nginx-deployment --replicas=10
+
+kubectl autoscale deployment.v1.apps/nginx-deployment --min=10 --max=15 --cpu-percent=80
+
+Stateful Sets:
+==============
+
+Manages the deployment and scaling of a set of Pods , and provides guarantees about the ordering and uniqueness of these Pods.
+
+
+Using StatefulSets:
+===================
+
+StatefulSets are valuable for applications that require one or more of the following.
+
+    Stable, unique network identifiers.
+    Stable, persistent storage.
+    Ordered, graceful deployment and scaling.
+    Ordered, automated rolling updates.
+    
+
+    
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None
+  selector:
+    app: nginx
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+spec:
+  selector:
+    matchLabels:
+      app: nginx # has to match .spec.template.metadata.labels
+  serviceName: "nginx"
+  replicas: 3 # by default is 1
+  template:
+    metadata:
+      labels:
+        app: nginx # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: nginx
+        image: k8s.gcr.io/nginx-slim:0.8
+        ports:
+        - containerPort: 80
+          name: web
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+  volumeClaimTemplates:
+  - metadata:
+      name: www
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "my-storage-class"
+      resources:
+        requests:
+          storage: 1Gi    
+          
+          
+          
+          
+          
+          
+DaemonSet:
+==========
+
+A DaemonSet ensures that all (or some) Nodes run a copy of a Pod. 
+As nodes are added to the cluster, Pods are added to them. 
+As nodes are removed from the cluster, those Pods are garbage collected. 
+Deleting a DaemonSet will clean up the Pods it created.
+
+Some typical uses of a DaemonSet are:
+
+    running a cluster storage daemon, such as glusterd, ceph, on each node.
+    running a logs collection daemon on every node, such as fluentd or logstash.
+    running a node monitoring daemon on every node, such as Prometheus Node Exporter, collectd, Dynatrace OneAgent, AppDynamics Agent, Datadog agent, New Relic agent, Ganglia gmond or Instana agent.   
+    
+    
+Garbage Collection:
+===================
+
+The role of the Kubernetes garbage collector is to delete certain objects that once had an owner, but no longer have an owner.
+
+Jobs - Run to Completion:
+=========================
+
+A Job creates one or more Pods and ensures that a specified number of them successfully terminate. 
+As pods successfully complete, the Job tracks the successful completions. 
+When a specified number of successful completions is reached, the task (ie, Job) is complete. 
+Deleting a Job will clean up the Pods it created.
+
+A simple case is to create one Job object in order to reliably run one Pod to completion. 
+The Job object will start a new Pod if the first Pod fails or is deleted (for example due to a node hardware failure or a node reboot).
+
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pi-with-timeout
+spec:
+  backoffLimit: 5
+  activeDeadlineSeconds: 100
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      containers:
+      - name: pi
+        image: perl
+        command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+      restartPolicy: Never
+
+
+CronJob:
+========
+
+A Cron Job creates Jobs on a time-based schedule.
+One CronJob object is like one line of a crontab (cron table) file.
+It runs a job periodically on a given schedule, written in Cron format.

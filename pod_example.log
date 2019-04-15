@@ -1,0 +1,165 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: podtest
+spec:
+  containers:
+  - name: shell
+    image: centos:7
+    command:
+      - "bin/bash"
+      - "-c"
+      - "sleep 10000"
+
+
+kubectl create -f test.yml
+
+# kubectl describe pods/podtest
+Name:               podtest
+Namespace:          default
+Priority:           0
+PriorityClassName:  <none>
+Node:               kube-node-2/10.192.0.4
+Start Time:         Sat, 13 Apr 2019 09:57:19 +0000
+Labels:             <none>
+Annotations:        <none>
+Status:             Running
+IP:                 10.244.3.4
+Containers:
+  shell:
+    Container ID:  docker://27cd74db62942902d907a256daabe91d72fcc5dcef28f1c29e37bd09b610738c
+    Image:         centos:7
+    Image ID:      docker-pullable://centos@sha256:8d487d68857f5bc9595793279b33d082b03713341ddec91054382641d14db861
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      bin/bash
+      -c
+      sleep 10000
+    State:          Running
+      Started:      Sat, 13 Apr 2019 09:58:34 +0000
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-m8v6w (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             True 
+  ContainersReady   True 
+  PodScheduled      True 
+Volumes:
+  default-token-m8v6w:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-m8v6w
+    Optional:    false
+QoS Class:       BestEffort
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
+                 node.kubernetes.io/unreachable:NoExecute for 300s
+Events:
+  Type    Reason     Age    From                  Message
+  ----    ------     ----   ----                  -------
+  Normal  Scheduled  2m48s  default-scheduler     Successfully assigned default/podtest to kube-node-2
+  Normal  Pulling    2m46s  kubelet, kube-node-2  pulling image "centos:7"
+  Normal  Pulled     97s    kubelet, kube-node-2  Successfully pulled image "centos:7"
+  Normal  Created    93s    kubelet, kube-node-2  Created container
+  Normal  Started    93s    kubelet, kube-node-2  Started container
+
+
+
+
+  
+  
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2019-04-13T09:57:19Z"
+  name: podtest
+  namespace: default
+  resourceVersion: "7584"
+  selfLink: /api/v1/namespaces/default/pods/podtest
+  uid: 86677523-5dd2-11e9-b52f-6e7573d30673
+spec:
+  nodeSelector:
+    name: node1
+  containers:
+  - command:
+    - bin/bash
+    - -c
+    - sleep 10000
+    image: centos:7
+    imagePullPolicy: IfNotPresent
+    name: shell
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-m8v6w
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: kube-node-2
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - name: default-token-m8v6w
+    secret:
+      defaultMode: 420
+      secretName: default-token-m8v6w
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2019-04-13T09:57:19Z"
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2019-04-13T10:10:33Z"
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2019-04-13T10:10:33Z"
+    status: "True"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2019-04-13T09:57:19Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: docker://78212637a9a4bbafb7a325fd67c03b78434c6201171c83a2bb5a36689e907c35
+    image: centos:7
+    imageID: docker-pullable://centos@sha256:8d487d68857f5bc9595793279b33d082b03713341ddec91054382641d14db861
+    lastState:
+      terminated:
+        containerID: docker://12a3060e95a92517183338b6cf6584a2bfbb576cac42ea8db44bc38d47a15a51
+        exitCode: 137
+        finishedAt: "2019-04-13T10:10:30Z"
+        reason: Error
+        startedAt: "2019-04-13T10:09:30Z"
+    name: shell
+    ready: true
+    restartCount: 1
+    state:
+      running:
+        startedAt: "2019-04-13T10:10:32Z"
+  hostIP: 10.192.0.4
+  phase: Running
+  podIP: 10.244.3.4
+  qosClass: BestEffort
+  startTime: "2019-04-13T09:57:19Z"

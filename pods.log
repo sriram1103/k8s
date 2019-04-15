@@ -1,0 +1,157 @@
+Understanding Pods:
+===================
+
+A Pod is the basic building block of Kubernetes–the smallest and simplest unit in the Kubernetes object model that you create or deploy. 
+A Pod represents a running process on your cluster 
+A Pod encapsulates an application container (or, in some cases, multiple containers), storage resources, a unique network IP, and options that govern how the container(s) should run
+A Pod represents a unit of deployment: a single instance of an application in Kubernetes, 
+which might consist of either a single container or a small number of containers that are tightly coupled and that share resources.
+Docker is the most common container runtime used in a Kubernetes Pod, but Pods support other container runtimes as well.
+
+Pods in a Kubernetes cluster can be used in two main ways:
+
+    Pods that run a single container.
+    Pods that run multiple containers that need to work together
+    
+    
+Each Pod is meant to run a single instance of a given application. 
+If you want to scale your application horizontally (e.g., run multiple instances), you should use multiple Pods, one for each instance. 
+In Kubernetes, this is generally referred to as replication. 
+Replicated Pods are usually created and managed as a group by an abstraction called a Controller    
+
+Pods provide two kinds of shared resources for their constituent containers: networking and storage
+
+    Networking:
+
+        Each Pod is assigned a unique IP address. 
+        Every container in a Pod shares the network namespace, including the IP address and network ports. 
+        Containers inside a Pod can communicate with one another using localhost.
+        
+    Storage:
+        
+        A Pod can specify a set of shared storage volumes. 
+        All containers in the Pod can access the shared volumes, allowing those containers to share data. 
+        Volumes also allow persistent data in a Pod to survive 
+
+Pods do not, by themselves, self-heal. 
+If a Pod is scheduled to a Node that fails, or if the scheduling operation itself fails, the Pod is deleted; 
+likewise, a Pod won’t survive an eviction due to a lack of resources or Node maintenance. 
+Kubernetes uses a higher-level abstraction, called a Controller, that handles the work of managing the relatively disposable Pod instances        
+
+In terms of Docker constructs, a pod is modelled as a group of Docker containers with shared namespaces and shared volumes.
+
+Pods and Controllers:
+
+    Some examples of Controllers that contain one or more pods include:
+
+        Deployment
+        StatefulSet
+        DaemonSet
+
+Pod Templates:
+    apiVersion: v1
+    kind: Pod
+    metadata:
+    name: myapp-pod
+    labels:
+        app: myapp
+    spec:
+    containers:
+    - name: myapp-container
+        image: busybox
+        command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
+
+
+Pods can be used to host vertically integrated application stacks (e.g. LAMP), but their primary motivation is to support co-located, co-managed helper programs, such as:
+
+    content management systems, file and data loaders, local cache managers, etc.
+    log and checkpoint backup, compression, rotation, snapshotting, etc.
+    data change watchers, log tailers, logging and monitoring adapters, event publishers, etc.
+    proxies, bridges, and adapters
+    controllers, managers, configurators, and updaters
+    
+    
+    
+Pod phase:
+==========
+
+A Pod’s status field is a PodStatus object, which has a phase field
+
+Here are the possible values for phase:
+
+Pending	            The Pod has been accepted by the Kubernetes system, but one or more of the Container images has not been created. 
+                        This includes time before being scheduled as well as time spent downloading images over the network, which could take a while.
+Running	            The Pod has been bound to a node, and all of the Containers have been created. 
+                        At least one Container is still running, or is in the process of starting or restarting.
+Succeeded	        All Containers in the Pod have terminated in success, and will not be restarted.
+Failed	            All Containers in the Pod have terminated, and at least one Container has terminated in failure. 
+                        That is, the Container either exited with non-zero status or was terminated by the system.
+Unknown	            For some reason the state of the Pod could not be obtained, 
+                        typically due to an error in communicating with the host of the Pod.
+Completed	        The pod has run to completion as there’s nothing to keep it running eg. Completed Jobs.
+CrashLoopBackOff	This means that one of the containers in the pod has exited unexpectedly, 
+                        and perhaps with a non-zero error code even after restarting due to restart policy.
+
+
+
+Pod conditions:
+===============
+
+A Pod has a PodStatus, which has an array of PodConditions through which the Pod has or has not passed. 
+Each element of the PodCondition array has six possible fields:
+
+    The lastProbeTime field provides a timestamp for when the Pod condition was last probed.
+    The lastTransitionTime field provides a timestamp for when the Pod last transitioned from one status to another.
+    The message field is a human-readable message indicating details about the transition.
+    The reason field is a unique, one-word, CamelCase reason for the condition’s last transition.
+    The status field is a string, with possible values “True”, “False”, and “Unknown”.
+    The type field is a string with the following possible values:
+        PodScheduled: the Pod has been scheduled to a node;
+        Ready: the Pod is able to serve requests and should be added to the load balancing pools of all matching Services;
+        Initialized: all init containers have started successfully;
+        Unschedulable: the scheduler cannot schedule the Pod right now, for example due to lack of resources or other constraints;
+        ContainersReady: all containers in the Pod are ready
+
+Container probes:
+=================
+
+A Probe is a diagnostic performed periodically by the kubelet on a Container. 
+To perform a diagnostic, the kubelet calls a Handler implemented by the Container. 
+There are three types of handlers:
+
+    ExecAction: Executes a specified command inside the Container. The diagnostic is considered successful if the command exits with a status code of 0.
+
+    TCPSocketAction: Performs a TCP check against the Container’s IP address on a specified port. The diagnostic is considered successful if the port is open.
+
+    HTTPGetAction: Performs an HTTP Get request against the Container’s IP address on a specified port and path. The diagnostic is considered successful if the response has a status code greater than or equal to 200 and less than 400.
+
+
+Restart policy:
+===============
+
+A PodSpec has a restartPolicy field with possible values Always, OnFailure, and Never
+Default is Always
+
+
+
+Pod Lifetime:
+=============
+
+Three types of controllers are available:
+
+    Use a Job for Pods that are expected to terminate, for example, batch computations. Jobs are appropriate only for Pods with restartPolicy equal to OnFailure or Never.
+
+    Use a ReplicationController, ReplicaSet, or Deployment for Pods that are not expected to terminate, for example, web servers. ReplicationControllers are appropriate only for Pods with a restartPolicy of Always.
+
+    Use a DaemonSet for Pods that need to run one per machine, because they provide a machine-specific system service.
+    
+    
+Init Containers:
+================
+
+A Pod can have multiple Containers running apps within it, but it can also have one or more Init Containers, which are run before the app Containers are started.
+
+Init Containers are exactly like regular Containers, except:
+
+    They always run to completion.
+    Each one must complete successfully before the next one is started.
